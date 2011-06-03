@@ -93,7 +93,7 @@ sshd.commandFactory = new ScpCommandFactory(
                                                   System.err.flush(); System.out.flush()
                                                   cl.release()
                                               } finally {
-                                                  if (time > 0) {time = System.currentTimeMillis() - time; println "${Thread.currentThread()} ${time}(ms)"}
+                                                  if (time > 0) {time = System.currentTimeMillis() - time; sysOut.println "${Thread.currentThread()} ${time} (ms)"}
                                                   sysOut.println "${Thread.currentThread()} end"
                                                   cmd.callback.onExit(result)
                                               }

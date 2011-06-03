@@ -1,22 +1,22 @@
 /*
-* Copyright 2011 the original author or authors.
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*      http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*/
+ * Copyright 2011 the original author or authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 /**
-* @author Daniel Henrique Alves Lima
-*/
+ * @author Daniel Henrique Alves Lima
+ */
 import java.io.IOException;
 
 import groovy.lang.GroovyClassLoader
@@ -59,52 +59,52 @@ sshd.commandFactory = new ScpCommandFactory(
             setOutputStream: {out -> cmd.output = new PrintStream(out)},
             setErrorStream: {err -> cmd.error = new PrintStream(err)},
             destroy: {},
-			start: {env ->
-				Thread currentThread = Thread.currentThread()
-				sysOut.println "${currentThread} begin"
-				def oldThreadCl = currentThread.contextClassLoader
-				def cl = new MyGroovyClassLoader(oldThreadCl? oldThreadCl : this.class.classLoader)
-				cl.errorStream = cmd.error; cl.inputStream = cmd.input; cl.outputStream = cmd.output
+            start: {env ->
+                Thread currentThread = Thread.currentThread()
+                sysOut.println "${currentThread} begin"
+                def oldThreadCl = currentThread.contextClassLoader
+                def cl = new MyGroovyClassLoader(oldThreadCl? oldThreadCl : this.class.classLoader)
+                cl.errorStream = cmd.error; cl.inputStream = cmd.input; cl.outputStream = cmd.output
 				
-				def scriptName = command.size() > 0?"${command[0]}":''
-				def scriptArgs = (command.size() > 1? command.subList(1, command.size()): []) as String[]
-				ThreadGroup tg = new ThreadGroup(currentThread.threadGroup, 
-					"${currentThread.threadGroup.name}:${scriptName}")
-				Thread t = new Thread(tg,
-					{
-						long time = -1; int result = -1
-						try {							
-							def scriptFile = new File(scriptName)
-							if (scriptFile.parentFile) {cl.addURL(scriptFile.parentFile.toURI().toURL())}
-							def script = cl.parseClass(scriptFile)
-							assert cl.equals(findMyClassLoader(script.classLoader))
-							time = System.currentTimeMillis()
-							script = script.newInstance()
-							script.args = scriptArgs; script.run()
-							result = 0
-						} catch (Exception e) {
-							e =  StackTraceUtils.deepSanitize(e)
-							sshd.log.error("Error running script ${scriptName}", e)
-							e.printStackTrace()
-							throw e
-						} finally {
-							try {
-								while (tg.activeCount() > 1 || tg.activeGroupCount() > 1) {Thread.sleep 100}
-								System.err.flush(); System.out.flush()
-								cl.release()
-							} finally {
-								if (time > 0) {time = System.currentTimeMillis() - time; println "${Thread.currentThread()} ${time}(ms)"}
-								sysOut.println "${Thread.currentThread()} end"
-								cmd.callback.onExit(result)
-							}
-						}
-					}
-					as Runnable
-				)
-				t.contextClassLoader = cl
-				t.start()	
-			}
-			]
+                def scriptName = command.size() > 0?"${command[0]}":''
+                def scriptArgs = (command.size() > 1? command.subList(1, command.size()): []) as String[]
+                ThreadGroup tg = new ThreadGroup(currentThread.threadGroup, 
+                                                 "${currentThread.threadGroup.name}:${scriptName}")
+                Thread t = new Thread(tg,
+                                      {
+                                          long time = -1; int result = -1
+                                          try {							
+                                              def scriptFile = new File(scriptName)
+                                              if (scriptFile.parentFile) {cl.addURL(scriptFile.parentFile.toURI().toURL())}
+                                              def script = cl.parseClass(scriptFile)
+                                              assert cl.equals(findMyClassLoader(script.classLoader))
+                                              time = System.currentTimeMillis()
+                                              script = script.newInstance()
+                                              script.args = scriptArgs; script.run()
+                                              result = 0
+                                          } catch (Exception e) {
+                                              e =  StackTraceUtils.deepSanitize(e)
+                                              sshd.log.error("Error running script ${scriptName}", e)
+                                              e.printStackTrace()
+                                              throw e
+                                          } finally {
+                                              try {
+                                                  while (tg.activeCount() > 1 || tg.activeGroupCount() > 1) {Thread.sleep 100}
+                                                  System.err.flush(); System.out.flush()
+                                                  cl.release()
+                                              } finally {
+                                                  if (time > 0) {time = System.currentTimeMillis() - time; println "${Thread.currentThread()} ${time}(ms)"}
+                                                  sysOut.println "${Thread.currentThread()} end"
+                                                  cmd.callback.onExit(result)
+                                              }
+                                          }
+                                      }
+                                      as Runnable
+                                     )
+                t.contextClassLoader = cl
+                t.start()	
+            }
+        ]
         
         return cmd as Command
 
@@ -113,14 +113,13 @@ sshd.commandFactory = new ScpCommandFactory(
 
 /*sshd.publickeyAuthenticator = {username, key, session ->
     return true
-} as PublickeyAuthenticator
-*/
+    } as PublickeyAuthenticator*/
 
-/*
-sshd.passwordAuthenticator = {username, password, session ->
+
+/*sshd.passwordAuthenticator = {username, password, session ->
     return true
-} as PasswordAuthenticator
-*/
+    } as PasswordAuthenticator*/
+
 
 def userAuthFactories = sshd.userAuthFactories
 if (!userAuthFactories) {userAuthFactories = []}
@@ -198,13 +197,13 @@ class MyOutputStream extends OutputStream {
     public void write(byte[] b, int off, int len) throws IOException {
         def cl = selectCl()
         (cl? cl.outputStream : output).write(b, off, len)
-		flush() //
+        flush() //
     }
 
-	@Override
-	public void flush() throws IOException {
-		def cl = selectCl()
-		(cl? cl.outputStream : output).flush()
-	}
+    @Override
+    public void flush() throws IOException {
+        def cl = selectCl()
+        (cl? cl.outputStream : output).flush()
+    }
     
 }

@@ -17,19 +17,23 @@
 /**
  * @author Daniel Henrique Alves Lima
  */
-import java.io.IOException;
+import java.io.IOException
+import java.net.InetAddress
 
 import groovy.lang.GroovyClassLoader
 import org.codehaus.groovy.runtime.StackTraceUtils
 
 import org.apache.sshd.SshServer
-import org.apache.sshd.server.auth.UserAuthNone
+import org.apache.sshd.common.NamedFactory
+//import org.apache.sshd.server.auth.UserAuthNone
+import org.apache.sshd.server.UserAuth
 import org.apache.sshd.server.Command
 import org.apache.sshd.server.CommandFactory
 import org.apache.sshd.server.command.ScpCommandFactory
 import org.apache.sshd.server.Environment
 import org.apache.sshd.server.ExitCallback
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider
+//import org.apache.sshd.server.session.ServerSession
 
 //import org.apache.sshd.server.PasswordAuthenticator
 //import org.apache.sshd.server.PublickeyAuthenticator
@@ -39,6 +43,7 @@ sshd.port = args && args.length > 0? args[0] as int : 8123
 sshd.keyPairProvider = new SimpleGeneratorHostKeyProvider('hostkey.ser')
 
 def sysOut = System.out
+def sysErr = System.err
 
 def findMyClassLoader = {ClassLoader cl = Thread.currentThread().contextClassLoader ->
     while (cl != null && !(cl instanceof MyGroovyClassLoader)) {
@@ -123,7 +128,29 @@ sshd.commandFactory = new ScpCommandFactory(
 
 def userAuthFactories = sshd.userAuthFactories
 if (!userAuthFactories) {userAuthFactories = []}
-userAuthFactories << new UserAuthNone.Factory()
+Set localIps = ['127.0.0.1', InetAddress.localHost.hostAddress] as Set
+//InetAddress.getAllByName('localhost')?.each {InetAddress add -> localIps << add.hostAddress}
+
+NamedFactory authFactory = [
+     getName: {
+         return 'none'
+     },
+     create: {
+         return {session, username, buffer ->
+             String remoteIp = session.ioSession.remoteAddress.address.hostAddress
+             if (localIps.contains(remoteIp)) {
+                 return true
+             } else {
+                 Exception e = new IllegalStateException("Connections started from ${remoteIp} are illegal. Allowed IPs are ${localIps}.")
+                 sshd.log.error('Authentication error', e)
+                 throw e
+             }
+         } as UserAuth
+     }   
+] as NamedFactory
+ 
+
+userAuthFactories << authFactory
 sshd.userAuthFactories = userAuthFactories
 
 
